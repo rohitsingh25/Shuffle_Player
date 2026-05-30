@@ -21,7 +21,7 @@ export default function Library({ songs, currentSong, playSong, addToQueue, isRe
                 ) : (
                     <div className="song-list">
                         {songs.length === 0 ? (
-                            <div className="empty-state">No songs found. Place mp3 files in the backend/music directory.</div>
+                            <div className="empty-state">No songs found. Please select a folder to scan for MP3 files.</div>
                         ) : (
                             songs.map((song) => (
                                 <div

@@ -286,17 +286,37 @@ function App() {
                                 const reader = new FileReader();
                                 reader.onload = () => resolve(reader.result);
                                 reader.onerror = reject;
-                                reader.readAsDataURL(file);
+            const folderHandle = await window.showDirectoryPicker();
+            setSelectedFolder(folderHandle.name);
+            // Recursively scan for mp3 files
+            const mp3Files = [];
+            for await (const entry of folderHandle.values()) {
+                if (entry.kind === 'file' && entry.name.endsWith('.mp3')) {
+                    const file = await entry.getFile();
+                    const url = URL.createObjectURL(file);
+                    mp3Files.push({
+                        id: mp3Files.length + 1,
+                        title: entry.name,
+                        url,
+                        file,
+                    });
+                } else if (entry.kind === 'directory') {
+                    // recurse into subfolders
+                    for await (const subEntry of entry.values()) {
+                        if (subEntry.kind === 'file' && subEntry.name.endsWith('.mp3')) {
+                            const file = await subEntry.getFile();
+                            const url = URL.createObjectURL(file);
+                            mp3Files.push({
+                                id: mp3Files.length + 1,
+                                title: subEntry.name,
+                                url,
+                                file,
                             });
-                            songsArray.push({ id: idCounter++, title: entry.name, url: dataUrl });
                         }
-                    } else if (entry.kind === 'directory') {
-                        await walk(entry);
                     }
                 }
-            };
-            await walk(dirHandle);
-            setLocalSongs(songsArray);
+            }
+            setLocalSongs(mp3Files);
         } catch (e) {
             console.error('Folder selection cancelled or failed', e);
         }
@@ -309,9 +329,13 @@ function App() {
         <Music2 size={28} className="logo-icon" />
         <h1>RoSY Music Player</h1>
     </div>
-    <button className="icon-btn" onClick={handleFolderPick} title="Select Music Folder">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 3a.5.5 0 0 1 .5-.5h4.293l1 1H15a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H1a.5.5 0 0 1-.5-.5V3z"/></svg>
-    </button>
+    <div className="folder-controls">
+        <button className="icon-btn" onClick={handleFolderPick} title="Select Music Folder">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 3a.5.5 0 0 1 .5-.5h4.293l1 1H15a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H1a.5.5 0 0 1-.5-.5V3z"/></svg>
+        </button>
+        {selectedFolder && <span className="selected-folder">Folder: {selectedFolder}</span>}
+        <button className="icon-btn" onClick={handleFolderPick} title="Rescan Folder">🔄</button>
+    </div>
 </header>
 
             <main className="main-content">
