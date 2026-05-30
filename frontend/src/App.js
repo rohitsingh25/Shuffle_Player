@@ -3,14 +3,156 @@ import './App.css';
 import Player from './components/Player';
 import Library from './components/Library';
 import Queue from './components/Queue';
-// RemixPanel import removed (not used)
-import { Music2 } from 'lucide-react';
+import { Music2, FolderOpen, ShieldCheck, RefreshCw } from 'lucide-react';
+
+const isFSASupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+
+function WelcomeScreen({ onBrowse, isScanning }) {
+    return (
+        <div className="welcome-overlay">
+            <div className="welcome-card">
+                <div className="welcome-logo">
+                    <div className="welcome-logo-ring">
+                        <Music2 size={40} className="welcome-logo-icon" />
+                    </div>
+                </div>
+
+                <h1 className="welcome-title">RoSY Music Player</h1>
+                <p className="welcome-subtitle">Your personal music — beautifully played.</p>
+
+                <div className="welcome-permission-box">
+                    <ShieldCheck size={18} className="permission-icon" />
+                    <div>
+                        <div className="permission-title">Folder Access Required</div>
+                        <div className="permission-desc">
+                            The browser will ask you to grant <strong>read-only</strong> access
+                            to your music folder. Your files never leave your device.
+                        </div>
+                    </div>
+                </div>
+
+                <div className="welcome-features">
+                    <div className="feature-item">🎵 Plays MP3 files from any folder</div>
+                    <div className="feature-item">📂 Scans sub-folders automatically</div>
+                    <div className="feature-item">🔀 Remix mode for shuffle playback</div>
+                    <div className="feature-item">🔒 100% local — no uploads, no cloud</div>
+                </div>
+
+                {!isFSASupported ? (
+                    <div className="browser-warning">
+                        ⚠️ Your browser doesn't support the File System Access API.
+                        Please use <strong>Chrome</strong> or <strong>Edge</strong> for full functionality.
+                    </div>
+                ) : (
+                    <button
+                        className="browse-btn"
+                        onClick={onBrowse}
+                        disabled={isScanning}
+                        id="browse-music-folder-btn"
+                    >
+                        {isScanning ? (
+                            <>
+                                <RefreshCw size={20} className="spin" />
+                                Scanning folder…
+                            </>
+                        ) : (
+                            <>
+                                <FolderOpen size={20} />
+                                Browse Music Folder
+                            </>
+                        )}
+                    </button>
+                )}
+
+                <p className="welcome-hint">
+                    A system dialog will open — select your music folder to continue.
+                </p>
+            </div>
+
+            {/* Animated background */}
+            <div className="welcome-bg-blob blob-1"></div>
+            <div className="welcome-bg-blob blob-2"></div>
+            <div className="welcome-bg-blob blob-3"></div>
+        </div>
+    );
+}
+
+function PermissionModal({ onConfirm, onCancel }) {
+    return (
+        <div className="modal-overlay">
+            <div className="permission-modal glass-panel">
+                <div className="modal-header">
+                    <ShieldCheck size={36} className="modal-shield-icon" />
+                    <h3>Grant Directory Access</h3>
+                </div>
+                <div className="modal-body">
+                    <p className="modal-intro">
+                        To load and play your local audio files, RoSY Music Player requires permission to read directories.
+                    </p>
+                    <div className="modal-info-cards">
+                        <div className="info-card">
+                            <span className="info-card-icon">📂</span>
+                            <div className="info-card-text">
+                                <strong>Directory Scanning</strong>
+                                <p>Lists and registers .mp3 files inside the folder and subfolders.</p>
+                            </div>
+                        </div>
+                        <div className="info-card">
+                            <span className="info-card-icon">🔒</span>
+                            <div className="info-card-text">
+                                <strong>100% Local Privacy</strong>
+                                <p>Files are read locally in your browser. Absolutely no data is uploaded.</p>
+                            </div>
+                        </div>
+                        <div className="info-card">
+                            <span className="info-card-icon">🛡️</span>
+                            <div className="info-card-text">
+                                <strong>Read-Only Access</strong>
+                                <p>The app will never edit, rename, or delete any of your files.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p className="modal-system-notice">
+                        Clicking <strong>Grant & Browse</strong> will open your browser's folder selector. Please approve the browser's permission prompt if asked.
+                    </p>
+                </div>
+                <div className="modal-footer">
+                    <button className="modal-btn secondary-btn" onClick={onCancel}>
+                        Cancel
+                    </button>
+                    <button className="modal-btn primary-btn" onClick={onConfirm} id="confirm-permission-btn">
+                        Grant & Browse
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 function App() {
-    const [songs, setSongs] = useState([]);
+    const [localSongs, setLocalSongs] = useState([]);
+    const [selectedFolder, setSelectedFolder] = useState(null);
+    const [isScanning, setIsScanning] = useState(false);
+    const [scanError, setScanError] = useState(null);
+    const [showWelcome, setShowWelcome] = useState(true);
+    const [showPermissionModal, setShowPermissionModal] = useState(false);
+
+    const handleBrowseClick = () => {
+        setScanError(null);
+        setShowPermissionModal(true);
+    };
+
+    const handlePermissionConfirm = () => {
+        setShowPermissionModal(false);
+        handleFolderPick();
+    };
+
+    const handlePermissionCancel = () => {
+        setShowPermissionModal(false);
+    };
+
     const [currentSong, setCurrentSong] = useState(null);
     const [queue, setQueue] = useState([]);
-    const [localSongs, setLocalSongs] = useState([]);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -26,111 +168,68 @@ function App() {
         targetTime: 0
     });
 
-    // Store latest songs to avoid stale closure in refs
-    const latestSongsRef = useRef(songs);
+    // Keep latest songs accessible in event callbacks without stale closure
+    const latestSongsRef = useRef(localSongs);
     useEffect(() => {
-        latestSongsRef.current = songs;
-    }, [songs]);
+        latestSongsRef.current = localSongs;
+    }, [localSongs]);
 
     const audioRef = useRef(new Audio());
 
-    // Load persisted local songs from localStorage
+    // Clear any stale localStorage from old version
     useEffect(() => {
-        const persisted = localStorage.getItem('localSongs');
-        if (persisted) {
-            try {
-                setLocalSongs(JSON.parse(persisted));
-            } catch (e) {
-                console.error('Failed to parse persisted songs', e);
-            }
-        }
+        localStorage.removeItem('localSongs');
+        localStorage.removeItem('localSongsMeta');
     }, []);
 
-    // Persist local songs when they change
-    useEffect(() => {
-        if (localSongs.length > 0) {
-            localStorage.setItem('localSongs', JSON.stringify(localSongs));
-        }
-    }, [localSongs]);
-
-    // Fetch songs from backend (fallback when no local songs)
-    useEffect(() => {
-        if (localSongs.length === 0) {
-            fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/songs`)
-                .then(res => res.json())
-                .then(data => setSongs(data))
-                .catch(err => console.error("Error fetching songs:", err));
-        }
-    }, [localSongs]);
-
-    // Handle Audio Object Events
+    // ─── Audio Event Listeners ────────────────────────────────────────────────
     useEffect(() => {
         const audio = audioRef.current;
 
-        const setAudioData = () => setDuration(audio.duration);
-        const setAudioTime = () => {
+        const onLoaded = () => setDuration(audio.duration);
+        const onTimeUpdate = () => {
             setCurrentTime(audio.currentTime);
-
-            if (remixStateRef.current.isActive && audio.currentTime >= remixStateRef.current.targetTime && !audio.paused && remixStateRef.current.queue.length > 0) {
-                // Time's up for this remix segment
-                const state = remixStateRef.current;
+            const state = remixStateRef.current;
+            if (state.isActive && audio.currentTime >= state.targetTime && !audio.paused && state.queue.length > 0) {
                 const currentId = state.queue[state.currentIndex];
                 state.positions[currentId] = audio.currentTime;
-
                 state.currentIndex = (state.currentIndex + 1) % state.queue.length;
                 playNextRemixSegment();
             }
         };
-
-        const handleEnded = () => {
+        const onEnded = () => {
             if (remixStateRef.current.isActive) {
                 const state = remixStateRef.current;
                 if (state.queue.length > 0) {
                     state.queue.splice(state.currentIndex, 1);
-                    if (state.currentIndex >= state.queue.length) {
-                        state.currentIndex = 0;
-                    }
-                    if (state.queue.length > 0) {
-                        playNextRemixSegment();
-                    } else {
-                        // All ended
-                        toggleRemixMode(); // turns it off
-                    }
+                    if (state.currentIndex >= state.queue.length) state.currentIndex = 0;
+                    if (state.queue.length > 0) playNextRemixSegment();
+                    else toggleRemixMode();
                 }
             } else {
                 handleNext();
             }
         };
 
-        audio.addEventListener('loadeddata', setAudioData);
-        audio.addEventListener('timeupdate', setAudioTime);
-        audio.addEventListener('ended', handleEnded);
-
+        audio.addEventListener('loadeddata', onLoaded);
+        audio.addEventListener('timeupdate', onTimeUpdate);
+        audio.addEventListener('ended', onEnded);
         return () => {
-            audio.removeEventListener('loadeddata', setAudioData);
-            audio.removeEventListener('timeupdate', setAudioTime);
-            audio.removeEventListener('ended', handleEnded);
+            audio.removeEventListener('loadeddata', onLoaded);
+            audio.removeEventListener('timeupdate', onTimeUpdate);
+            audio.removeEventListener('ended', onEnded);
         };
-    }, [currentSong, queue]);
+    }, [currentSong, queue]); // eslint-disable-line
 
-    // Handle Playback Speed & Volume
-    useEffect(() => {
-        audioRef.current.playbackRate = playbackSpeed;
-    }, [playbackSpeed]);
+    useEffect(() => { audioRef.current.playbackRate = playbackSpeed; }, [playbackSpeed]);
+    useEffect(() => { audioRef.current.volume = volume; }, [volume]);
 
     useEffect(() => {
-        audioRef.current.volume = volume;
-    }, [volume]);
-
-    // Handle Play/Pause
-    useEffect(() => {
-        if (isPlaying) {
-            audioRef.current.play().catch(e => console.log(e));
-        } else {
-            audioRef.current.pause();
-        }
+        if (isPlaying) audioRef.current.play().catch(e => console.log(e));
+        else audioRef.current.pause();
     }, [isPlaying, currentSong]);
 
+    // ─── Playback Controls ────────────────────────────────────────────────────
     const playSong = (song) => {
         setCurrentSong(song);
         audioRef.current.src = song.url;
@@ -138,51 +237,35 @@ function App() {
     };
 
     const togglePlay = () => {
-        if (!currentSong && songs.length > 0) {
-            playSong(songs[0]);
-        } else if (currentSong) {
-            setIsPlaying(!isPlaying);
-        }
+        if (!currentSong && localSongs.length > 0) playSong(localSongs[0]);
+        else if (currentSong) setIsPlaying(!isPlaying);
     };
 
     const handleNext = () => {
         if (queue.length > 0) {
-            // Play from queue
             const nextSong = queue[0];
             setQueue(queue.slice(1));
             playSong(nextSong);
         } else {
-            // Play next in library
-            const currentIndex = songs.findIndex(s => s.id === currentSong?.id);
-            if (currentIndex !== -1 && currentIndex < songs.length - 1) {
-                playSong(songs[currentIndex + 1]);
-            } else if (songs.length > 0) {
-                // Loop back to start
-                playSong(songs[0]);
-            }
+            const idx = localSongs.findIndex(s => s.id === currentSong?.id);
+            if (idx !== -1 && idx < localSongs.length - 1) playSong(localSongs[idx + 1]);
+            else if (localSongs.length > 0) playSong(localSongs[0]);
         }
     };
 
     const handlePrev = () => {
-        if (isRemixMode) return; // Disable prev in remix mode
-        const currentIndex = songs.findIndex(s => s.id === currentSong?.id);
-        if (currentIndex > 0) {
-            playSong(songs[currentIndex - 1]);
-        } else if (songs.length > 0) {
-            playSong(songs[songs.length - 1]);
-        }
+        if (isRemixMode) return;
+        const idx = localSongs.findIndex(s => s.id === currentSong?.id);
+        if (idx > 0) playSong(localSongs[idx - 1]);
+        else if (localSongs.length > 0) playSong(localSongs[localSongs.length - 1]);
     };
 
-    const addToQueue = (song) => {
-        setQueue([...queue, song]);
-    };
-
+    const addToQueue = (song) => setQueue([...queue, song]);
     const removeFromQueue = (index) => {
-        const newQueue = [...queue];
-        newQueue.splice(index, 1);
-        setQueue(newQueue);
+        const q = [...queue];
+        q.splice(index, 1);
+        setQueue(q);
     };
-
     const playFromQueue = (index) => {
         const song = queue[index];
         removeFromQueue(index);
@@ -196,36 +279,18 @@ function App() {
         setCurrentTime(percent * duration);
     };
 
+    // ─── Remix Mode ────────────────────────────────────────────────────────────
     const playNextRemixSegment = () => {
         const state = remixStateRef.current;
-        const currentSongs = latestSongsRef.current;
-
-        if (state.queue.length === 0 || currentSongs.length === 0) {
-            if (isRemixMode) toggleRemixMode();
-            return;
-        }
-
-        if (state.currentIndex >= state.queue.length) {
-            state.currentIndex = 0;
-        }
-
+        const songs = latestSongsRef.current;
+        if (state.queue.length === 0 || songs.length === 0) { if (isRemixMode) toggleRemixMode(); return; }
+        if (state.currentIndex >= state.queue.length) state.currentIndex = 0;
         const songId = state.queue[state.currentIndex];
-        const songToPlay = currentSongs.find(s => s.id === songId);
-
-        if (!songToPlay) {
-            // Failsafe, shouldn't happen
-            state.queue.splice(state.currentIndex, 1);
-            playNextRemixSegment();
-            return;
-        }
-
+        const songToPlay = songs.find(s => s.id === songId);
+        if (!songToPlay) { state.queue.splice(state.currentIndex, 1); playNextRemixSegment(); return; }
         const startPos = state.positions[songId] || 0;
-        const durationSegment = Math.floor(Math.random() * 11) + 5; // 5 to 15 seconds
-        state.targetTime = startPos + durationSegment;
-
-        const speedLevel = Math.floor(Math.random() * 7) + 2; // 2 to 8
-        const speed = speedLevel * 0.25; // 0.5x to 2.0x
-
+        state.targetTime = startPos + Math.floor(Math.random() * 11) + 5;
+        const speed = (Math.floor(Math.random() * 7) + 2) * 0.25;
         setPlaybackSpeed(speed);
         setCurrentSong(songToPlay);
         audioRef.current.src = songToPlay.url;
@@ -239,109 +304,120 @@ function App() {
         const newMode = !isRemixMode;
         setIsRemixMode(newMode);
         remixStateRef.current.isActive = newMode;
-
         if (newMode) {
-            const currentSongs = latestSongsRef.current;
-            if (currentSongs.length === 0) {
-                setIsRemixMode(false);
-                remixStateRef.current.isActive = false;
-                return;
-            }
-            // Populate temporary list
-            remixStateRef.current.queue = currentSongs.map(s => s.id);
-            // Shuffle temporary list randomly
-            remixStateRef.current.queue.sort(() => Math.random() - 0.5);
+            const songs = latestSongsRef.current;
+            if (songs.length === 0) { setIsRemixMode(false); remixStateRef.current.isActive = false; return; }
+            remixStateRef.current.queue = songs.map(s => s.id).sort(() => Math.random() - 0.5);
             remixStateRef.current.currentIndex = 0;
             remixStateRef.current.positions = {};
             playNextRemixSegment();
         } else {
-            // Disable remix mode
             remixStateRef.current.queue = [];
             remixStateRef.current.positions = {};
             setPlaybackSpeed(1.0);
-            if (!currentSong && songs.length > 0) {
-                playSong(songs[0]);
-            } else if (currentSong) {
-                // Keep playing current from where it was
-                setIsPlaying(true);
-            }
+            if (!currentSong && localSongs.length > 0) playSong(localSongs[0]);
+            else if (currentSong) setIsPlaying(true);
         }
     };
 
-    // Determine which song list to use (local scanned or backend)
-    const librarySongs = localSongs.length > 0 ? localSongs : songs;
-
-    // Folder picker to scan user-selected folder for mp3 files
+    // ─── Folder Picker (with permission request via showDirectoryPicker) ───────
     const handleFolderPick = async () => {
+        setScanError(null);
+        setIsScanning(true);
         try {
-            const dirHandle = await window.showDirectoryPicker();
-            const songsArray = [];
-            let idCounter = 1;
-            const walk = async (handle) => {
-                for await (const entry of handle.values()) {
-                    if (entry.kind === 'file') {
-                        if (entry.name.toLowerCase().endsWith('.mp3')) {
-                            const file = await entry.getFile();
-                            const dataUrl = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve(reader.result);
-                                reader.onerror = reject;
-            const folderHandle = await window.showDirectoryPicker();
+            const folderHandle = await window.showDirectoryPicker({ mode: 'read' });
             setSelectedFolder(folderHandle.name);
-            // Recursively scan for mp3 files
+
             const mp3Files = [];
-            for await (const entry of folderHandle.values()) {
-                if (entry.kind === 'file' && entry.name.endsWith('.mp3')) {
-                    const file = await entry.getFile();
-                    const url = URL.createObjectURL(file);
-                    mp3Files.push({
-                        id: mp3Files.length + 1,
-                        title: entry.name,
-                        url,
-                        file,
-                    });
-                } else if (entry.kind === 'directory') {
-                    // recurse into subfolders
-                    for await (const subEntry of entry.values()) {
-                        if (subEntry.kind === 'file' && subEntry.name.endsWith('.mp3')) {
-                            const file = await subEntry.getFile();
-                            const url = URL.createObjectURL(file);
-                            mp3Files.push({
-                                id: mp3Files.length + 1,
-                                title: subEntry.name,
-                                url,
-                                file,
-                            });
-                        }
+            const scanEntries = async (handle, depth = 0) => {
+                for await (const entry of handle.values()) {
+                    if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.mp3')) {
+                        const file = await entry.getFile();
+                        const url = URL.createObjectURL(file);
+                        mp3Files.push({
+                            id: mp3Files.length + 1,
+                            title: entry.name.replace(/\.mp3$/i, ''),
+                            url,
+                        });
+                    } else if (entry.kind === 'directory' && depth < 2) {
+                        await scanEntries(entry, depth + 1);
                     }
                 }
+            };
+
+            await scanEntries(folderHandle);
+
+            if (mp3Files.length === 0) {
+                setScanError('No MP3 files found in the selected folder.');
+                setIsScanning(false);
+                return;
             }
+
             setLocalSongs(mp3Files);
+            setShowWelcome(false);
         } catch (e) {
-            console.error('Folder selection cancelled or failed', e);
+            if (e.name === 'AbortError') {
+                // User cancelled — keep welcome screen open
+            } else {
+                setScanError('Could not access the folder. Please try again.');
+                console.error('Folder selection failed', e);
+            }
         }
+        setIsScanning(false);
     };
+
+    const handleChangeFolder = () => {
+        setShowWelcome(true);
+        setLocalSongs([]);
+        setSelectedFolder(null);
+        setScanError(null);
+        setCurrentSong(null);
+        setIsPlaying(false);
+        setQueue([]);
+        audioRef.current.src = '';
+        remixStateRef.current = { isActive: false, queue: [], currentIndex: 0, positions: {}, targetTime: 0 };
+        setIsRemixMode(false);
+    };
+
+    // ─── Render ────────────────────────────────────────────────────────────────
+    if (showWelcome) {
+        return (
+            <>
+                <WelcomeScreen onBrowse={handleBrowseClick} isScanning={isScanning} />
+                {showPermissionModal && (
+                    <PermissionModal
+                        onConfirm={handlePermissionConfirm}
+                        onCancel={handlePermissionCancel}
+                    />
+                )}
+                {scanError && <div className="scan-error-toast">{scanError}</div>}
+            </>
+        );
+    }
 
     return (
         <div className="app-container">
             <header className="app-header">
-    <div className="logo">
-        <Music2 size={28} className="logo-icon" />
-        <h1>RoSY Music Player</h1>
-    </div>
-    <div className="folder-controls">
-        <button className="icon-btn" onClick={handleFolderPick} title="Select Music Folder">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 3a.5.5 0 0 1 .5-.5h4.293l1 1H15a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H1a.5.5 0 0 1-.5-.5V3z"/></svg>
-        </button>
-        {selectedFolder && <span className="selected-folder">Folder: {selectedFolder}</span>}
-        <button className="icon-btn" onClick={handleFolderPick} title="Rescan Folder">🔄</button>
-    </div>
-</header>
+                <div className="logo">
+                    <Music2 size={28} className="logo-icon" />
+                    <h1>RoSY Music Player</h1>
+                </div>
+                <div className="folder-controls">
+                    <span className="selected-folder" title={selectedFolder}>📁 {selectedFolder}</span>
+                    <button className="icon-btn rescan-btn" onClick={handleFolderPick} title="Rescan folder">
+                        <RefreshCw size={16} />
+                    </button>
+                    <button className="icon-btn change-folder-btn" onClick={handleChangeFolder} title="Change folder">
+                        <FolderOpen size={16} />
+                        <span className="btn-label">Change</span>
+                    </button>
+                </div>
+            </header>
 
             <main className="main-content">
                 <div className="left-panel">
                     <Library
-                        songs={librarySongs}
+                        songs={localSongs}
                         currentSong={currentSong}
                         playSong={playSong}
                         addToQueue={addToQueue}
@@ -366,7 +442,6 @@ function App() {
                         isRemixMode={isRemixMode}
                         toggleRemixMode={toggleRemixMode}
                     />
-                    {isRemixMode && <RemixPanel />}
                     <Queue
                         queue={queue}
                         removeFromQueue={removeFromQueue}
@@ -375,7 +450,6 @@ function App() {
                 </div>
             </main>
 
-            {/* Background generic shapes for dynamic feel */}
             <div className="bg-shape shape-1"></div>
             <div className="bg-shape shape-2"></div>
             <div className="bg-shape shape-3"></div>
