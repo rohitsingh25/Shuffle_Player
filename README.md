@@ -9,6 +9,13 @@ A full-stack local music player built with React and Django. It features a moder
 - **Custom Player:** Fully functional audio controls, progress bar, interactive volume slider overlay, and playback speed controls (0.5x to 2.0x).
 - **Remix Mode:** A special playback mode that creates a temporary playlist of all songs, playing each for a random duration (5-15s) at a randomized speed. It remembers paused timestamps, allowing precise segment resuming when looping back!
 
+## Assets & Branding
+The application uses a custom-designed branding package:
+- **Branding Icon:** A sleek glowing neon music note combined with elegant shuffle arrows on a deep dark blue background.
+- **Multi-Resolution Favicons:** Includes optimized `favicon.ico`, `favicon-16x16.png`, `favicon-32x32.png`, and a 180x180 `apple-touch-icon.png` for iOS bookmarking.
+- **Web App Manifest (`manifest.json`):** Declares application name, theme colors (`#0d1117`), and app launcher icons (`android-chrome-192x192.png`, `android-chrome-512x512.png`) for Progressive Web App support.
+- **Clean Console Output:** Build and dev servers utilize Node's `--no-warnings` flag to suppress dependency deprecation warnings (e.g. `fs.F_OK` warning) on newer Node.js releases.
+
 ## Project Structure
 - `backend/`: Python Django application to discover local MP3s and stream them dynamically.
 - `frontend/`: React application containing all UI components and playback logic.

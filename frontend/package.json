@@ -9,8 +9,8 @@
         "lucide-react": "^0.112.0"
     },
     "scripts": {
-        "start": "NODE_OPTIONS=--openssl-legacy-provider react-scripts start",
-        "build": "NODE_OPTIONS=--openssl-legacy-provider CI=false react-scripts build"
+        "start": "NODE_OPTIONS='--openssl-legacy-provider --no-warnings' react-scripts start",
+        "build": "NODE_OPTIONS='--openssl-legacy-provider --no-warnings' CI=false react-scripts build"
     },
     "browserslist": {
         "production": [
