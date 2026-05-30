@@ -39,3 +39,23 @@ The frontend application will launch at http://localhost:3000.
 
 ## Note on `.mp3` Files
 To add music, place standard `.mp3` files into the `backend/music` directory. The application also automatically detects supported files from your system's `Music` and `Downloads` folders (Linux/macOS defaults).
+
+## Deployment
+
+### Vercel
+1. Commit and push the repository to GitHub.
+2. In Vercel dashboard, import the GitHub repo.
+3. Vercel automatically detects the `frontend` folder as the project root.
+4. Ensure the **Build Command** is `npm install && npm run build` and **Output Directory** is `frontend/build`.
+5. The `vercel.json` file rewrites all routes to `index.html` for SPA support.
+6. After the first deploy, the site will be live at `<your-project>.vercel.app`.
+
+### Render
+1. In Render dashboard, create a **Static Site**.
+2. Connect your GitHub repository and select the `frontend` directory.
+3. Set **Build Command** to `npm install && npm run build`.
+4. Set **Publish Directory** to `frontend/build`.
+5. Add the `render.yaml` file (already present) to configure automatic deploys.
+6. Deploy and your site will be accessible via the provided Render URL.
+
+Both platforms serve the built static files; the client‑side scanning runs in the browser, so no additional backend setup is required.

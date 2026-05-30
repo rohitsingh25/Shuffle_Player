@@ -3,12 +3,14 @@ import './App.css';
 import Player from './components/Player';
 import Library from './components/Library';
 import Queue from './components/Queue';
+// RemixPanel import removed (not used)
 import { Music2 } from 'lucide-react';
 
 function App() {
     const [songs, setSongs] = useState([]);
     const [currentSong, setCurrentSong] = useState(null);
     const [queue, setQueue] = useState([]);
+    const [localSongs, setLocalSongs] = useState([]);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -32,13 +34,34 @@ function App() {
 
     const audioRef = useRef(new Audio());
 
-    // Fetch songs from backend
+    // Load persisted local songs from localStorage
     useEffect(() => {
-        fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/songs`)
-            .then(res => res.json())
-            .then(data => setSongs(data))
-            .catch(err => console.error("Error fetching songs:", err));
+        const persisted = localStorage.getItem('localSongs');
+        if (persisted) {
+            try {
+                setLocalSongs(JSON.parse(persisted));
+            } catch (e) {
+                console.error('Failed to parse persisted songs', e);
+            }
+        }
     }, []);
+
+    // Persist local songs when they change
+    useEffect(() => {
+        if (localSongs.length > 0) {
+            localStorage.setItem('localSongs', JSON.stringify(localSongs));
+        }
+    }, [localSongs]);
+
+    // Fetch songs from backend (fallback when no local songs)
+    useEffect(() => {
+        if (localSongs.length === 0) {
+            fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/songs`)
+                .then(res => res.json())
+                .then(data => setSongs(data))
+                .catch(err => console.error("Error fetching songs:", err));
+        }
+    }, [localSongs]);
 
     // Handle Audio Object Events
     useEffect(() => {
@@ -245,19 +268,56 @@ function App() {
         }
     };
 
+    // Determine which song list to use (local scanned or backend)
+    const librarySongs = localSongs.length > 0 ? localSongs : songs;
+
+    // Folder picker to scan user-selected folder for mp3 files
+    const handleFolderPick = async () => {
+        try {
+            const dirHandle = await window.showDirectoryPicker();
+            const songsArray = [];
+            let idCounter = 1;
+            const walk = async (handle) => {
+                for await (const entry of handle.values()) {
+                    if (entry.kind === 'file') {
+                        if (entry.name.toLowerCase().endsWith('.mp3')) {
+                            const file = await entry.getFile();
+                            const dataUrl = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve(reader.result);
+                                reader.onerror = reject;
+                                reader.readAsDataURL(file);
+                            });
+                            songsArray.push({ id: idCounter++, title: entry.name, url: dataUrl });
+                        }
+                    } else if (entry.kind === 'directory') {
+                        await walk(entry);
+                    }
+                }
+            };
+            await walk(dirHandle);
+            setLocalSongs(songsArray);
+        } catch (e) {
+            console.error('Folder selection cancelled or failed', e);
+        }
+    };
+
     return (
         <div className="app-container">
             <header className="app-header">
-                <div className="logo">
-                    <Music2 size={28} className="logo-icon" />
-                    <h1>RoSY Music Player</h1>
-                </div>
-            </header>
+    <div className="logo">
+        <Music2 size={28} className="logo-icon" />
+        <h1>RoSY Music Player</h1>
+    </div>
+    <button className="icon-btn" onClick={handleFolderPick} title="Select Music Folder">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M.5 3a.5.5 0 0 1 .5-.5h4.293l1 1H15a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-.5.5H1a.5.5 0 0 1-.5-.5V3z"/></svg>
+    </button>
+</header>
 
             <main className="main-content">
                 <div className="left-panel">
                     <Library
-                        songs={songs}
+                        songs={librarySongs}
                         currentSong={currentSong}
                         playSong={playSong}
                         addToQueue={addToQueue}
@@ -282,6 +342,7 @@ function App() {
                         isRemixMode={isRemixMode}
                         toggleRemixMode={toggleRemixMode}
                     />
+                    {isRemixMode && <RemixPanel />}
                     <Queue
                         queue={queue}
                         removeFromQueue={removeFromQueue}
