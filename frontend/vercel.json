@@ -1,4 +1,7 @@
 {
+  "env": {
+    "NODE_OPTIONS": "--openssl-legacy-provider"
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
