@@ -17,7 +17,7 @@ This project can be deployed as a static site on **Vercel** or **Render**. The f
 
 ---
 
-## Render
+## Render (Frontend Static Site)
 1. **Create a Static Site** – In Render, click *New* → *Static Site*.
 2. **Connect Repository** – Link the same GitHub repo.
 3. **Root Directory**: `frontend`
@@ -25,6 +25,22 @@ This project can be deployed as a static site on **Vercel** or **Render**. The f
 5. **Publish Directory**: `frontend/build`
 6. **Deployment Configuration** – The `render.yaml` file in the repo defines the build and routing settings; Render will read it automatically.
 7. **Deploy** – Render will build and serve the site at a URL like `your-project.onrender.com`.
+
+---
+
+## Render (Backend Web Service)
+If you wish to deploy the Python/Django backend service:
+1. **Create a Web Service** – In Render, click *New* → *Web Service*.
+2. **Connect Repository** – Link the same GitHub repo.
+3. **Language** – Select **Python**.
+4. **Build Command** – Set to `pip install -r requirements.txt && python backend/manage.py collectstatic --noinput`.
+5. **Start Command** – Set to `gunicorn --chdir backend backend.wsgi:application`.
+6. **Environment Variables**:
+   - `DEBUG`: `False` (disables Django debug mode for production security)
+   - `SECRET_KEY`: A long, random, secure key (e.g. `your-random-32-char-key`)
+   - `ALLOWED_HOSTS`: Set to your backend domain (e.g., `your-backend.onrender.com`) or `*`.
+   - `PYTHON_VERSION`: `3.10.2` (or matches your system's python version).
+
 
 ---
 
