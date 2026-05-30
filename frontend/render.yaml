@@ -2,9 +2,8 @@ services:
   - type: web
     name: music-player
     env: static
-    env:
-      NODE_OPTIONS: "--openssl-legacy-provider"
-    staticPublishPath: build
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/build
     routes:
       - type: rewrite
         source: /
