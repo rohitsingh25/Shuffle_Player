@@ -20,6 +20,23 @@ export default function Player({ currentSong, isPlaying, togglePlay, handleNext,
 
     return (
         <div className="player-container glass-panel">
+            {/* Remix Widget */}
+            <div className={`remix-widget ${isRemixMode ? 'active' : ''}`} onClick={toggleRemixMode}>
+                <div className="remix-widget-glow"></div>
+                <div className="remix-widget-content">
+                    <Activity size={20} className={`remix-widget-icon ${isRemixMode ? 'pulse' : ''}`} />
+                    <div className="remix-widget-info">
+                        <span className="remix-widget-title">Remix Mode</span>
+                        <span className="remix-widget-status">
+                            {isRemixMode ? 'Dynamic Speed & Mashups' : 'Standard Playback'}
+                        </span>
+                    </div>
+                </div>
+                <div className={`remix-toggle-switch ${isRemixMode ? 'active' : ''}`}>
+                    <div className="toggle-switch-thumb"></div>
+                </div>
+            </div>
+
             {/* Track Info */}
             <div className="player-info">
                 <div className="album-art-placeholder">
@@ -34,13 +51,6 @@ export default function Player({ currentSong, isPlaying, togglePlay, handleNext,
             {/* Controls & Progress */}
             <div className="player-controls-wrapper">
                 <div className="control-buttons">
-                    <button
-                        className={`icon-btn remix-btn ${isRemixMode ? 'active' : ''}`}
-                        onClick={toggleRemixMode}
-                        title="Remix Mode"
-                    >
-                        <Activity size={18} />
-                    </button>
                     <button className="icon-btn" onClick={handlePrev} disabled={!currentSong || isRemixMode}>
                         <SkipBack size={20} />
                     </button>
@@ -50,8 +60,6 @@ export default function Player({ currentSong, isPlaying, togglePlay, handleNext,
                     <button className="icon-btn" onClick={handleNext} disabled={!currentSong || isRemixMode}>
                         <SkipForward size={20} />
                     </button>
-                    {/* Placeholder for shuffle or repeat if needed */}
-                    <div style={{ width: 32 }}></div>
                 </div>
 
                 <div className="progress-container">

@@ -1169,3 +1169,128 @@
 .primary-btn:active {
     transform: translateY(0);
 }
+
+/* Remix Widget Styles */
+.remix-widget {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1.1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    margin-bottom: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    overflow: hidden;
+    user-select: none;
+}
+
+.remix-widget:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-1px);
+}
+
+.remix-widget.active {
+    background: rgba(88, 166, 255, 0.05);
+    border-color: rgba(88, 166, 255, 0.3);
+}
+
+.remix-widget-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(88, 166, 255, 0.15), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.remix-widget.active .remix-widget-glow {
+    opacity: 1;
+}
+
+.remix-widget-content {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    position: relative;
+    z-index: 2;
+}
+
+.remix-widget-icon {
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.remix-widget.active .remix-widget-icon {
+    color: var(--accent-color);
+    filter: drop-shadow(0 0 8px rgba(88, 166, 255, 0.6));
+}
+
+.pulse {
+    animation: icon-pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes icon-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.15); opacity: 1; }
+}
+
+.remix-widget-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.remix-widget-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.remix-widget-status {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.1rem;
+    transition: color 0.3s ease;
+}
+
+.remix-widget.active .remix-widget-status {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+/* Custom Toggle Switch */
+.remix-toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    z-index: 2;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.remix-toggle-switch.active {
+    background: var(--accent-color);
+    box-shadow: 0 0 10px rgba(88, 166, 255, 0.4);
+}
+
+.toggle-switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.remix-toggle-switch.active .toggle-switch-thumb {
+    transform: translateX(16px);
+}
