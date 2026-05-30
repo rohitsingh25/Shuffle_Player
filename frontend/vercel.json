@@ -3,6 +3,10 @@
     "NODE_OPTIONS": "--openssl-legacy-provider"
   },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "rootDirectory": "frontend"
 }
